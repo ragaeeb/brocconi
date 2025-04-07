@@ -3,8 +3,6 @@ import path from 'node:path';
 
 import logger from './logger.js';
 
-const TRAINING_FILE_ID = 'training';
-
 export enum GeminiModels {
     FlashLiteV2 = 'gemini-2.0-flash-lite',
     FlashThinkingV2 = 'gemini-2.0-flash-thinking-exp-01-21',
@@ -21,27 +19,34 @@ export class GeminiAPI {
         this.ocrPrompt = ocrPrompt;
     }
 
+    async destroy() {
+        try {
+            if (this.trainingImageFile?.name) {
+                logger.info(`Deleting previous training image.`);
+                await this.client?.files.delete({ name: this.trainingImageFile.name });
+            }
+        } catch (err) {
+            logger.error(err, `Error deleting training image`);
+        }
+    }
+
     async init(apiKey: string) {
+        await this.destroy();
+
         logger.info('Initializing...');
         this.client = new GoogleGenAI({ apiKey });
-
-        logger.info(`Checking if training exists`);
-
-        try {
-            this.trainingImageFile = await this.client.files.get({ name: TRAINING_FILE_ID });
-        } catch {
-            logger.warn(`Training data was not uploaded, uploading it now for the first time`);
-
-            this.trainingImageFile = await this.client.files.upload({
-                config: { mimeType: 'image/jpeg', name: TRAINING_FILE_ID },
-                file: path.join('training', '2.jpg'),
-            });
-        }
-
-        logger.info(`Initialization complete, training file uri: ${this.trainingImageFile.uri}`);
     }
 
     async ocrImage(file: string) {
+        if (!this.trainingImageFile) {
+            logger.warn(`Training data was not uploaded, uploading it now for the first time`);
+
+            this.trainingImageFile = await this.client!.files.upload({
+                file: path.join('training', '2.jpg'),
+            });
+            logger.info(`Initialization complete, training file uri: ${this.trainingImageFile.uri}`);
+        }
+
         logger.info(`Uploading ${file}`);
         const imageFile = await this.client!.files.upload({
             file,
@@ -50,7 +55,7 @@ export class GeminiAPI {
         logger.info(`Issuing OCR request for ${imageFile.uri}`);
         const result = await this.client!.models.generateContent({
             contents: createUserContent([
-                createPartFromUri(this.trainingImageFile!.uri!, this.trainingImageFile!.mimeType!),
+                createPartFromUri(this.trainingImageFile.uri!, this.trainingImageFile.mimeType!),
                 createPartFromUri(imageFile.uri!, imageFile.mimeType!),
                 this.ocrPrompt!,
             ]),

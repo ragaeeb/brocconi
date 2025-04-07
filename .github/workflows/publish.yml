@@ -19,11 +19,6 @@ jobs:
                   fetch-depth: 0
                   persist-credentials: true
 
-            - name: Use Node.js 23.x
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 23.x
-
             - name: Set up Bun
               uses: oven-sh/setup-bun@v2
               with:
@@ -36,7 +31,7 @@ jobs:
               run: bun run build
 
             - name: Run Semantic Release
-              run: npx semantic-release
+              run: bun x semantic-release
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   NPM_TOKEN: ${{ secrets.PUBLISH_NPM_TOKEN }}
