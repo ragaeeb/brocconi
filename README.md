@@ -5,6 +5,7 @@
 ![GitHub License](https://img.shields.io/github/license/ragaeeb/brocconi)
 ![GitHub Release](https://img.shields.io/github/v/release/ragaeeb/brocconi)
 ![typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label&color=blue)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/ragaeeb/brocconi?utm_source=oss&utm_medium=github&utm_campaign=ragaeeb%2Fbrocconi&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 ```bash
 pdftoppm -jpeg -q -r 300 2146.pdf output/

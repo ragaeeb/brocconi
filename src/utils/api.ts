@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import logger from './logger.js';
 
-export enum GeminiModels {
+export enum GeminiModel {
     FlashLiteV2 = 'gemini-2.0-flash-lite',
     FlashThinkingV2 = 'gemini-2.0-flash-thinking-exp-01-21',
     FlashV2 = 'gemini-2.0-flash',
@@ -11,12 +11,23 @@ export enum GeminiModels {
 }
 
 export class GeminiAPI {
+    set model(value: GeminiModel) {
+        this._model = value;
+    }
+
+    get model() {
+        return this._model;
+    }
+
+    private _model: GeminiModel;
     private client?: GoogleGenAI;
-    private ocrPrompt?: string;
+    private readonly ocrPrompt?: string;
+
     private trainingImageFile?: File;
 
     constructor({ ocrPrompt }: { ocrPrompt: string }) {
         this.ocrPrompt = ocrPrompt;
+        this._model = GeminiModel.FlashV2;
     }
 
     async destroy() {
@@ -59,8 +70,15 @@ export class GeminiAPI {
                 createPartFromUri(imageFile.uri!, imageFile.mimeType!),
                 this.ocrPrompt!,
             ]),
-            model: GeminiModels.FlashV2,
+            model: this._model,
         });
+
+        try {
+            logger.debug(`Deleting ${imageFile.name}`);
+            await this.client?.files.delete({ name: imageFile.name! });
+        } catch (err) {
+            logger.warn(err, 'Could not delete uploaded image');
+        }
 
         return result.text;
     }
