@@ -14,9 +14,9 @@ export type OCRResult = {
 
 export type Page = {
     accessed: Date;
+    aiModelId?: string;
     body: string;
     footnotes?: string;
-    ocrModelId?: string;
     page: number;
     part: number;
 };

@@ -1,5 +1,6 @@
 import { createPartFromUri, createUserContent, type File, GoogleGenAI } from '@google/genai';
 import path from 'node:path';
+import { blueBright, italic, magenta, magentaBright } from 'picocolors';
 
 import logger from './logger.js';
 
@@ -10,16 +11,13 @@ export enum GeminiModel {
     ProV2_5 = 'gemini-2.5-pro-exp-03-25',
 }
 
+const COLORED_MODELS = [
+    { color: blueBright, model: GeminiModel.FlashV2 },
+    { color: magenta, model: GeminiModel.FlashThinkingV2 },
+    { color: magenta, model: GeminiModel.ProV2_5 },
+];
+
 export class GeminiAPI {
-    set model(value: GeminiModel) {
-        this._model = value;
-    }
-
-    get model() {
-        return this._model;
-    }
-
-    private _model: GeminiModel;
     private client?: GoogleGenAI;
     private readonly ocrPrompt?: string;
 
@@ -27,7 +25,21 @@ export class GeminiAPI {
 
     constructor({ ocrPrompt }: { ocrPrompt: string }) {
         this.ocrPrompt = ocrPrompt;
-        this._model = GeminiModel.FlashV2;
+    }
+
+    async deleteAllFiles() {
+        const uploadedFiles = await this.client!.files.list({ config: { pageSize: 100 } });
+        logger.info(`${uploadedFiles.pageLength} files to delete...`);
+
+        for await (const file of uploadedFiles) {
+            logger.info(`Deleting ${file.name}...`);
+
+            try {
+                await this.client?.files.delete({ name: file.name! });
+            } catch (err) {
+                logger.error(err, `Could not delete ${file.uri}`);
+            }
+        }
     }
 
     async destroy() {
@@ -39,39 +51,55 @@ export class GeminiAPI {
         } catch (err) {
             logger.error(err, `Error deleting training image`);
         }
+
+        this.trainingImageFile = undefined;
     }
 
     async init(apiKey: string) {
         await this.destroy();
 
-        logger.info('Initializing...');
+        logger.info(
+            `Initializing with ${italic(magentaBright(apiKey.slice(0, 3) + '*****' + apiKey[Math.floor(apiKey.length / 2)] + '*****' + apiKey.slice(-3)))}...`,
+        );
         this.client = new GoogleGenAI({ apiKey });
     }
 
     async ocrImage(file: string) {
         if (!this.trainingImageFile) {
-            logger.warn(`Training data was not uploaded, uploading it now for the first time`);
+            logger.info(`Uploading training image.`);
 
             this.trainingImageFile = await this.client!.files.upload({
                 file: path.join('training', '2.jpg'),
             });
-            logger.info(`Initialization complete, training file uri: ${this.trainingImageFile.uri}`);
+            logger.info(`Training uri: ${this.trainingImageFile.uri}`);
         }
 
         logger.info(`Uploading ${file}`);
+
         const imageFile = await this.client!.files.upload({
             file,
         });
 
-        logger.info(`Issuing OCR request for ${imageFile.uri}`);
-        const result = await this.client!.models.generateContent({
-            contents: createUserContent([
-                createPartFromUri(this.trainingImageFile.uri!, this.trainingImageFile.mimeType!),
-                createPartFromUri(imageFile.uri!, imageFile.mimeType!),
-                this.ocrPrompt!,
-            ]),
-            model: this._model,
-        });
+        let result;
+
+        for (const { color, model } of COLORED_MODELS) {
+            logger.info(`Issuing OCR request for ${imageFile.uri} with ${color(model)}`);
+
+            result = await this.client!.models.generateContent({
+                contents: createUserContent([
+                    createPartFromUri(this.trainingImageFile!.uri!, this.trainingImageFile!.mimeType!),
+                    createPartFromUri(imageFile.uri!, imageFile.mimeType!),
+                    this.ocrPrompt!,
+                ]),
+                model,
+            });
+
+            if (result.text) {
+                break;
+            } else {
+                logger.warn('Empty response received, trying next model');
+            }
+        }
 
         try {
             logger.debug(`Deleting ${imageFile.name}`);
@@ -80,6 +108,6 @@ export class GeminiAPI {
             logger.warn(err, 'Could not delete uploaded image');
         }
 
-        return result.text;
+        return result!;
     }
 }
