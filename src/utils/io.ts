@@ -11,6 +11,13 @@ import sharp from 'sharp';
 import logger from './logger.js';
 
 export const exportPdfToImages = async (pdf: string) => {
+    try {
+        await $`which pdftoppm`.quiet();
+    } catch (error) {
+        logger.error(error);
+        throw new Error('pdftoppm is not installed. Please install poppler-utils package.');
+    }
+
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'brocconi'));
     const command = ['pdftoppm', '-cropbox', '-jpeg', '-q', '-r', '300', pdf, `${tempDir}/`];
 
@@ -26,18 +33,24 @@ export const exportPdfToImages = async (pdf: string) => {
 };
 
 export const isImageEmpty = async (path: string): Promise<boolean> => {
-    const { data, info } = await sharp(path)
-        .resize({ width: 1000 }) // optional: normalize resolution
-        .grayscale()
-        .threshold(150) // lower = keep more dark ink
-        .raw()
-        .toBuffer({ resolveWithObject: true });
+    try {
+        const { data, info } = await sharp(path)
+            .resize({ width: 1000 }) // optional: normalize resolution
+            .grayscale()
+            .threshold(150) // lower = keep more dark ink
+            .raw()
+            .toBuffer({ resolveWithObject: true });
 
-    const blackPixels = data.reduce((count, value) => count + (value === 0 ? 1 : 0), 0);
-    const totalPixels = info.width * info.height;
+        const blackPixels = data.reduce((count, value) => count + (value === 0 ? 1 : 0), 0);
+        const totalPixels = info.width * info.height;
 
-    const blackRatio = blackPixels / totalPixels;
-    return blackRatio < 0.0025;
+        const blackRatio = blackPixels / totalPixels;
+        return blackRatio < 0.0025;
+    } catch (error) {
+        logger.error(`Failed to process image ${path}: ${error}`);
+    }
+
+    return false;
 };
 
 export const getImagesToOCR = async (imagesDirectory: string): Promise<PageImageFile[]> => {
@@ -115,7 +128,7 @@ export const openFolder = async (path: string) => {
         }
         return true;
     } catch (error) {
-        console.error(`Failed to open folder: ${error}`);
+        logger.error(`Failed to open folder: ${error}`);
         return false;
     }
 };

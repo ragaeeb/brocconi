@@ -65,8 +65,12 @@ const init = async () => {
         });
 
         isSuccess = pagesSkipped.length === 0;
-    } catch (err: any) {
-        logger.error(err, 'index.ts: Error caught');
+    } catch (err) {
+        if (err instanceof Error) {
+            logger.error({ message: err.message, stack: err.stack }, 'index.ts: Error caught');
+        } else {
+            logger.error(String(err), 'index.ts: Unexpected error caught');
+        }
     }
 
     if (!isSuccess) {

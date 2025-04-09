@@ -27,10 +27,7 @@ const config = new Conf<ConfigSchema>({
 logger.info(`Config loaded from ${config.path}`);
 
 /**
- * Returns the next API key in rotation, using a round-robin approach.
- * The starting position is randomly selected when the module is loaded
- * to better distribute load across multiple concurrent processes.
- *
+ * Returns a random API key from the configured list.
  * @returns {string} The next API key to use
  */
 export const getRandomGeminiApiKey = (): string => {

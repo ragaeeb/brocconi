@@ -31,7 +31,7 @@ bun install
 brocconi [options] <directory> [<directory2> ...]
 ```
 
-## Prequisites
+## Prerequisites
 
 This library uses `pdftoppm` to convert the PDF to images which can be used for OCR. Ensure you have `pdftoppm` installed.
 
@@ -46,7 +46,7 @@ pdftoppm -v
 
 ### Set API keys
 
-In order to make calls to the Gemini API you need to have your API keys set. Get your [API keys](https://aistudio.google.com/app/apikey) from Google AI Studio. Then you can set it like this:
+In order to make calls to the Gemini API, you need to have your API keys set. Get your [API keys](https://aistudio.google.com/app/apikey) from Google AI Studio. Then you can set it like this:
 
 ```bash
 bunx brocconi -k "GEMINI_API_KEY"
@@ -58,11 +58,11 @@ To work around rate-limiting, you can also set multiple API keys:
 bunx brocconi -k "GEMINI_API_KEY1 GEMINI_API_KEY2 GEMINI_API_KEY3"
 ```
 
-At runtime the app will pick a random one.
+At runtime, the app will pick a random one.
 
 #### Set ocr.space API key
 
-Sometimes Gemini fails to OCR the image. The app will retry with different models, but if cannot succeed with any of them it can fall back to using a different platform like ocr.space. If you want this fallback, you can get a ocr.space [key](https://ocr.space/ocrapi/freekey). Then set the key like this:
+Sometimes Gemini fails to OCR the image. The app will retry with different models, but if it cannot succeed with any of them, it can fall back to using a different platform like ocr.space. If you want this fallback, you can get a ocr.space [key](https://ocr.space/ocrapi/freekey). Then set the key like this:
 
 ```bash
 bunx brocconi -b "OCRSPACEKEY"
@@ -102,7 +102,7 @@ This will add `part: 3` for each page.
 
 ### Delete all uploads before starting
 
-In case of errors you might want to do a cleanup of all the previously uploaded files. You can run the reset command like this:
+In case of errors, you might want to do a cleanup of all the previously uploaded files. You can run the reset command like this:
 
 ```bash
 bunx brocconi /path/to/file.pdf -r

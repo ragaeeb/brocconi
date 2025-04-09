@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "CLI for OCRing PDFs using AI platforms.",
     "source": "src/index.ts",
-    "main": "dist/main.js",
+    "main": "dist/index.js",
     "type": "module",
     "bin": {
         "brocconi": "dist/index.js"
@@ -14,8 +14,7 @@
         "compile": "NODE_ENV=production bun build src/index.ts --target node --compile --outfile dist/brocconi"
     },
     "files": [
-        "dist/index.js",
-        "dist/main.js"
+        "dist/index.js"
     ],
     "keywords": [
         "nodejs",
