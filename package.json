@@ -24,7 +24,7 @@
     "author": "Ragaeeb Haq",
     "license": "MIT",
     "dependencies": {
-        "@google/genai": "^0.7.0",
+        "@google/genai": "^0.8.0",
         "catsa-janga": "^1.0.1",
         "conf": "^13.1.0",
         "ocr-space-api-wrapper": "^2.3.2",
