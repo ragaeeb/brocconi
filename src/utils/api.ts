@@ -1,8 +1,8 @@
 import { createPartFromUri, createUserContent, type File, GoogleGenAI } from '@google/genai';
-import path from 'node:path';
 import { blueBright, italic, magenta, magentaBright } from 'picocolors';
 
 import logger from './logger.js';
+import { samplePageWithFootnotes } from './training.js';
 
 enum GeminiModel {
     FlashLiteV2 = 'gemini-2.0-flash-lite',
@@ -70,7 +70,7 @@ export class GeminiAPI {
             logger.info(`ℹ️ Uploading training image.`);
 
             this.trainingImageFile = await this.client!.files.upload({
-                file: path.join('training', 'sample_with_footnotes.jpg'),
+                file: samplePageWithFootnotes,
             });
 
             logger.info(`🥊 Training uri: ${this.trainingImageFile.uri}`);

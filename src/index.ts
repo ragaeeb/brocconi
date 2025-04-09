@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
 
-import { file } from 'bun';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
@@ -10,6 +9,7 @@ import { hasGeminiApiKeys, setGeminiApiKeys, setOCRSpaceKey } from './utils/conf
 import { getArgs, showHelp } from './utils/flags.js';
 import { exportPdfToImages, openFolder } from './utils/io.js';
 import logger from './utils/logger.js';
+import { promptWithFooters, promptWithoutFooters } from './utils/training.js';
 
 const init = async () => {
     const { backup, footers, help, keys, output, part, pdf, reset, version } = getArgs();
@@ -49,10 +49,7 @@ const init = async () => {
     }
 
     const outputFile = output || path.format({ dir: pdfFile.dir, ext: '.json', name: pdfFile.name });
-    const [prompt, imagesDirectory] = await Promise.all([
-        file(path.join('training', footers ? 'prompt_footers.txt' : 'prompt_no_footers.txt')).text(),
-        isDirectory ? pdf : exportPdfToImages(pdf),
-    ]);
+    const imagesDirectory = isDirectory ? pdf : await exportPdfToImages(pdf);
 
     let isSuccess = false;
 
@@ -60,7 +57,7 @@ const init = async () => {
         const pagesSkipped = await ocrImages(imagesDirectory, outputFile, {
             isolateFooters: footers,
             part,
-            prompt,
+            prompt: footers ? promptWithFooters : promptWithoutFooters,
             resetBeforeStart: reset,
         });
 

@@ -13,9 +13,7 @@
         "compile": "NODE_ENV=production bun build src/index.ts --target node --compile --outfile dist/brocconi"
     },
     "files": [
-        "dist/index.js",
-        "dist/brocconi",
-        "training/"
+        "dist/"
     ],
     "keywords": [
         "nodejs",
