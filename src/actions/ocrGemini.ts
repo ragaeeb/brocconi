@@ -1,7 +1,7 @@
 import type { OCROptions, OCRResult, PageImageFile } from '@/types.js';
 import type { GeminiAPI } from '@/utils/api.js';
 
-import { getRandomApiKey } from '@/utils/config.js';
+import { getRandomGeminiApiKey } from '@/utils/config.js';
 import logger from '@/utils/logger.js';
 import { file } from 'bun';
 import { setTimeout } from 'node:timers/promises';
@@ -25,7 +25,7 @@ export const performOCROnPages = async (
             const response = await gemini.ocrImage(filePath);
 
             if (response.text) {
-                logger.info(`Adding page: ${page}\n`);
+                logger.info(`✅ Adding page: ${page}\n`);
 
                 const [body, footnotes] = options.isolateFooters
                     ? response.text.split(FOOTNOTES_MARKER).map((value) => value.trim())
@@ -47,7 +47,7 @@ export const performOCROnPages = async (
         } catch (err: any) {
             if (err.message?.includes('Too Many Requests')) {
                 logger.error(`Rate limiting detected. Cycling to next API key...`);
-                await gemini.init(getRandomApiKey());
+                await gemini.init(getRandomGeminiApiKey());
                 i--; // try this request again with another API key
             } else if (err.message?.includes('model is overloaded')) {
                 logger.error(`${err.message}: Sleeping for 1 minute...`);

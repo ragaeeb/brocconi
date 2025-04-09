@@ -4,17 +4,18 @@ import { blueBright, italic, magenta, magentaBright } from 'picocolors';
 
 import logger from './logger.js';
 
-export enum GeminiModel {
+enum GeminiModel {
     FlashLiteV2 = 'gemini-2.0-flash-lite',
     FlashThinkingV2 = 'gemini-2.0-flash-thinking-exp-01-21',
     FlashV2 = 'gemini-2.0-flash',
     ProV2_5 = 'gemini-2.5-pro-exp-03-25',
 }
 
-const COLORED_MODELS = [
+export const COLORED_MODELS = [
     { color: blueBright, model: GeminiModel.FlashV2 },
     { color: magenta, model: GeminiModel.FlashThinkingV2 },
     { color: magenta, model: GeminiModel.ProV2_5 },
+    { color: magenta, model: GeminiModel.FlashLiteV2 },
 ];
 
 export class GeminiAPI {
@@ -45,7 +46,7 @@ export class GeminiAPI {
     async destroy() {
         try {
             if (this.trainingImageFile?.name) {
-                logger.info(`Deleting previous training image.`);
+                logger.info(`🗑️ Deleting previous training image.`);
                 await this.client?.files.delete({ name: this.trainingImageFile.name });
             }
         } catch (err) {
@@ -66,15 +67,16 @@ export class GeminiAPI {
 
     async ocrImage(file: string) {
         if (!this.trainingImageFile) {
-            logger.info(`Uploading training image.`);
+            logger.info(`ℹ️ Uploading training image.`);
 
             this.trainingImageFile = await this.client!.files.upload({
-                file: path.join('training', '2.jpg'),
+                file: path.join('training', 'sample_with_footnotes.jpg'),
             });
-            logger.info(`Training uri: ${this.trainingImageFile.uri}`);
+
+            logger.info(`🥊 Training uri: ${this.trainingImageFile.uri}`);
         }
 
-        logger.info(`Uploading ${file}`);
+        logger.info(`📤 Uploading ${file}`);
 
         const imageFile = await this.client!.files.upload({
             file,
@@ -82,30 +84,32 @@ export class GeminiAPI {
 
         let result;
 
-        for (const { color, model } of COLORED_MODELS) {
-            logger.info(`Issuing OCR request for ${imageFile.uri} with ${color(model)}`);
-
-            result = await this.client!.models.generateContent({
-                contents: createUserContent([
-                    createPartFromUri(this.trainingImageFile!.uri!, this.trainingImageFile!.mimeType!),
-                    createPartFromUri(imageFile.uri!, imageFile.mimeType!),
-                    this.ocrPrompt!,
-                ]),
-                model,
-            });
-
-            if (result.text) {
-                break;
-            } else {
-                logger.warn('Empty response received, trying next model');
-            }
-        }
-
         try {
-            logger.debug(`Deleting ${imageFile.name}`);
-            await this.client?.files.delete({ name: imageFile.name! });
-        } catch (err) {
-            logger.warn(err, 'Could not delete uploaded image');
+            for (const { color, model } of COLORED_MODELS) {
+                logger.info(`⏳ Issuing OCR request for ${imageFile.uri} with ${color(model)}`);
+
+                result = await this.client!.models.generateContent({
+                    contents: createUserContent([
+                        createPartFromUri(this.trainingImageFile!.uri!, this.trainingImageFile!.mimeType!),
+                        createPartFromUri(imageFile.uri!, imageFile.mimeType!),
+                        this.ocrPrompt!,
+                    ]),
+                    model,
+                });
+
+                if (result.text) {
+                    break;
+                } else {
+                    logger.warn('♻️ Empty response received, trying next model');
+                }
+            }
+        } finally {
+            try {
+                logger.debug(`🗑️ Deleting ${imageFile.name}`);
+                await this.client?.files.delete({ name: imageFile.name! });
+            } catch (err) {
+                logger.warn(err, 'Could not delete uploaded image');
+            }
         }
 
         return result!;

@@ -16,7 +16,7 @@ export const performOCRSpaceFallback = async (data: OCRResult, files: PageImageF
                 scale: true,
             });
 
-            const body = result.ParsedResults[0].ParsedText.trim();
+            const body = result.ParsedResults[0]?.ParsedText?.trim();
 
             if (body) {
                 data.pages.push({

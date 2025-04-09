@@ -2,6 +2,7 @@ export type OCROptions = {
     isolateFooters?: boolean;
     part: number;
     prompt: string;
+    resetBeforeStart?: boolean;
 };
 
 export type OCRResult = {

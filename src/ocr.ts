@@ -4,9 +4,9 @@ import type { OCROptions, OCRResult } from './types.js';
 
 import { performOCROnPages } from './actions/ocrGemini.js';
 import { performOCRSpaceFallback } from './actions/ocrSpace.js';
-import { GeminiAPI, GeminiModel } from './utils/api.js';
-import { getOCRSpaceKey, getRandomApiKey } from './utils/config.js';
-import { getImagesToOCR } from './utils/io.js';
+import { COLORED_MODELS, GeminiAPI } from './utils/api.js';
+import { getOCRSpaceKey, getRandomGeminiApiKey } from './utils/config.js';
+import { getImagesToOCR, waitForUserInterruption } from './utils/io.js';
 import logger from './utils/logger.js';
 
 const getImagesToProcess = async (imagesDirectory: string, pageNumbers: number[]) => {
@@ -19,7 +19,7 @@ export const ocrImages = async (imagesDirectory: string, outputFile: string, opt
 
     try {
         const data: OCRResult = {
-            aiModelId: GeminiModel.FlashV2,
+            aiModelId: COLORED_MODELS[0].model,
             pages: [],
             prompt: options.prompt,
             startTimestamp: new Date(),
@@ -39,8 +39,21 @@ export const ocrImages = async (imagesDirectory: string, outputFile: string, opt
         Object.assign(data, await progressSaver.restore());
 
         try {
-            await gemini.init(getRandomApiKey());
-            await gemini.deleteAllFiles(); // cleanup for previous errors
+            while (true) {
+                await gemini.init(getRandomGeminiApiKey());
+
+                logger.info('⏳ You have 5 seconds to press ENTER to choose a use API key...');
+                const isInterruptedByUser = await waitForUserInterruption(5000);
+
+                if (!isInterruptedByUser) {
+                    logger.info('✅ Proceeding with API key');
+                    break;
+                }
+            }
+
+            if (options.resetBeforeStart) {
+                await gemini.deleteAllFiles(); // cleanup for previous errors
+            }
 
             let emptyPages = await performOCROnPages(
                 gemini,

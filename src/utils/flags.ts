@@ -30,6 +30,12 @@ export const showHelp = () => {
                 Option: '-k, --keys',
             },
             {
+                Description:
+                    'Removes all the previously uploaded files before starting in case there were errors which prevented cleanup',
+                Example: '--reset"',
+                Option: '-r, --reset',
+            },
+            {
                 Description: 'Get version number',
                 Example: '--version',
                 Option: '-v, --version',
@@ -66,6 +72,10 @@ export const getArgs = () => {
                 short: 'p',
                 type: 'string',
             },
+            reset: {
+                short: 'r',
+                type: 'boolean',
+            },
             version: {
                 short: 'v',
                 type: 'boolean',
@@ -74,9 +84,9 @@ export const getArgs = () => {
         strict: true,
     });
 
-    const { input, ...rest } = values;
+    const { input, part, ...rest } = values;
 
     const [pdf = input] = positionals;
 
-    return { ...rest, part: parseInt(rest.part), pdf };
+    return { ...rest, part: parseInt(part), pdf };
 };

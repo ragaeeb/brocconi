@@ -4,6 +4,9 @@ import { $, spawn } from 'bun';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { setTimeout } from 'node:timers/promises';
+import pMap from 'p-map';
+import sharp from 'sharp';
 
 import logger from './logger.js';
 
@@ -22,6 +25,83 @@ export const exportPdfToImages = async (pdf: string) => {
     throw new Error(`pdftoppm exited with code ${exitCode}`);
 };
 
+export const isImageEmpty = async (path: string): Promise<boolean> => {
+    const { data, info } = await sharp(path)
+        .resize({ width: 1000 }) // optional: normalize resolution
+        .grayscale()
+        .threshold(150) // lower = keep more dark ink
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+    const blackPixels = data.reduce((count, value) => count + (value === 0 ? 1 : 0), 0);
+    const totalPixels = info.width * info.height;
+
+    const blackRatio = blackPixels / totalPixels;
+    return blackRatio < 0.0025;
+};
+
+export const getImagesToOCR = async (imagesDirectory: string): Promise<PageImageFile[]> => {
+    logger.debug(`Scanning ${imagesDirectory} for images`);
+
+    const files = (await fs.readdir(imagesDirectory))
+        .filter((f) => f.endsWith('.jpg'))
+        .toSorted()
+        .map((file) => path.join(imagesDirectory, file))
+        .map((file) => {
+            const name = path.parse(file).name.split('-').at(-1) as string;
+            return { file, page: parseInt(name) };
+        })
+        .filter((image) => {
+            return image.page > 0;
+        });
+
+    logger.debug(`${files.length} images found, checking for blanks`);
+
+    const results = await pMap(
+        files,
+        async (f) => {
+            const isEmpty = await isImageEmpty(f.file);
+
+            if (isEmpty) {
+                return null;
+            }
+
+            return f;
+        },
+        { concurrency: 4 },
+    );
+
+    const validImages = results.filter(Boolean) as PageImageFile[];
+
+    logger.info(`${validImages.length} valid images found`);
+
+    return validImages;
+};
+
+export const waitForUserInterruption = async (timeoutMs = 3000): Promise<boolean> => {
+    while (process.stdin.read()) {
+        // Flush any existing stdin input by reading non-blocking
+    }
+
+    const timeout = setTimeout(timeoutMs).then(() => 'timeout');
+
+    const input = (async () => {
+        for await (const line of console) {
+            return line;
+        }
+    })();
+
+    let result;
+
+    try {
+        result = await Promise.race([timeout, input]);
+    } finally {
+        process.stdin.pause();
+    }
+
+    return result !== 'timeout';
+};
+
 export const openFolder = async (path: string) => {
     const platform = process.platform;
 
@@ -38,20 +118,4 @@ export const openFolder = async (path: string) => {
         console.error(`Failed to open folder: ${error}`);
         return false;
     }
-};
-
-export const getImagesToOCR = async (imagesDirectory: string): Promise<PageImageFile[]> => {
-    const files = (await fs.readdir(imagesDirectory))
-        .filter((f) => f.endsWith('.jpg'))
-        .toSorted()
-        .map((file) => path.join(imagesDirectory, file));
-
-    return files
-        .map((file) => {
-            const name = path.parse(file).name.split('-').at(-1) as string;
-            return { file, page: parseInt(name) };
-        })
-        .filter((image) => {
-            return image.page > 0;
-        });
 };

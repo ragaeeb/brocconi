@@ -32,21 +32,17 @@ logger.info(`Config loaded from ${config.path}`);
  * to better distribute load across multiple concurrent processes.
  *
  * @returns {string} The next API key to use
- * @throws {Error} If no API keys are available
- * @internal
  */
-export const getRandomApiKey = (): string => {
+export const getRandomGeminiApiKey = (): string => {
     const keys = config.get('geminiApiKeys');
-    const currentKeyIndex = Math.floor(Math.random() * Math.max(keys.length, 1));
-
-    return keys[currentKeyIndex];
+    return keys[Math.floor(Math.random() * keys.length)];
 };
 
-export const hasApiKeys = () => {
+export const hasGeminiApiKeys = () => {
     return config.get('geminiApiKeys').length > 0;
 };
 
-export const setApiKeys = (keys: string[]) => {
+export const setGeminiApiKeys = (keys: string[]) => {
     config.set('geminiApiKeys', keys);
 };
 

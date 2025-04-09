@@ -6,13 +6,13 @@ import path from 'node:path';
 
 import packageJson from '../package.json' assert { type: 'json' };
 import { ocrImages } from './ocr.js';
-import { hasApiKeys, setApiKeys } from './utils/config.js';
+import { hasGeminiApiKeys, setGeminiApiKeys, setOCRSpaceKey } from './utils/config.js';
 import { getArgs, showHelp } from './utils/flags.js';
 import { exportPdfToImages, openFolder } from './utils/io.js';
 import logger from './utils/logger.js';
 
 const init = async () => {
-    const { footers, help, keys, output, part, pdf, version } = getArgs();
+    const { backup, footers, help, keys, output, part, pdf, reset, version } = getArgs();
 
     if (help) {
         return showHelp();
@@ -23,10 +23,16 @@ const init = async () => {
     }
 
     if (keys) {
-        return setApiKeys(keys.split(' '));
+        setGeminiApiKeys(keys.split(' '));
+        return logger.info(`Saved Gemini API keys`);
     }
 
-    if (!hasApiKeys()) {
+    if (backup) {
+        setOCRSpaceKey(backup);
+        return logger.info(`Saved ocr.space API key`);
+    }
+
+    if (!hasGeminiApiKeys()) {
         return logger.error(`API keys are not set. Please first set API keys like this: -k "KEY1 KEY2 KEY3"`);
     }
 
@@ -55,6 +61,7 @@ const init = async () => {
             isolateFooters: footers,
             part,
             prompt,
+            resetBeforeStart: reset,
         });
 
         isSuccess = pagesSkipped.length === 0;
