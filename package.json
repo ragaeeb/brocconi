@@ -1,0 +1,52 @@
+{
+    "name": "brocconi",
+    "version": "1.0.0",
+    "description": "CLI for OCRing PDFs using AI platforms.",
+    "source": "src/index.ts",
+    "main": "dist/index.js",
+    "type": "module",
+    "bin": {
+        "brocconi": "dist/index.js"
+    },
+    "scripts": {
+        "start": "bun run src/index.ts",
+        "build": "NODE_ENV=production bun build src/index.ts --outdir dist --target node --packages=external",
+        "compile": "NODE_ENV=production bun build src/index.ts --target node --compile --outfile dist/brocconi"
+    },
+    "files": [
+        "dist/index.js"
+    ],
+    "keywords": [
+        "nodejs",
+        "ocr"
+    ],
+    "author": "Ragaeeb Haq",
+    "license": "MIT",
+    "dependencies": {
+        "@google/genai": "^0.7.0",
+        "catsa-janga": "^1.0.1",
+        "conf": "^13.1.0",
+        "ocr-space-api-wrapper": "^2.3.2",
+        "p-map": "^7.0.3",
+        "picocolors": "^1.1.1",
+        "pino": "^9.6.0",
+        "pino-pretty": "^13.0.0",
+        "sharp": "^0.34.1"
+    },
+    "engines": {
+        "bun": ">=1.2.8"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.24.0",
+        "@types/bun": "^1.2.8",
+        "@types/node": "^22.14.0",
+        "eslint": "^9.24.0",
+        "eslint-config-prettier": "^10.1.1",
+        "eslint-plugin-perfectionist": "^4.11.0",
+        "eslint-plugin-prettier": "^5.2.6",
+        "globals": "^16.0.0",
+        "prettier": "^3.5.3",
+        "semantic-release": "^24.2.3",
+        "typescript-eslint": "^8.29.1"
+    }
+}
