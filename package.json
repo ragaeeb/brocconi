@@ -14,7 +14,8 @@
     },
     "files": [
         "dist/index.js",
-        "dist/brocconi"
+        "dist/brocconi",
+        "training/"
     ],
     "keywords": [
         "nodejs",
