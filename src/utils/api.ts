@@ -67,7 +67,7 @@ export class GeminiAPI {
 
     async ocrImage(file: string) {
         if (!this.trainingImageFile) {
-            logger.info(`ℹ️ Uploading training image.`);
+            logger.info(`ℹ️ Uploading training image: ${samplePageWithFootnotes}`);
 
             this.trainingImageFile = await this.client!.files.upload({
                 file: samplePageWithFootnotes,
