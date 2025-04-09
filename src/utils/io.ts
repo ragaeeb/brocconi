@@ -1,5 +1,3 @@
-import type { PageImageFile } from '@/types.js';
-
 import { $, spawn } from 'bun';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
@@ -7,6 +5,8 @@ import path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import pMap from 'p-map';
 import sharp from 'sharp';
+
+import type { PageImageFile } from '../types.js';
 
 import logger from './logger.js';
 

@@ -5,7 +5,7 @@
     "type": "module",
     "main": "dist/index.js",
     "bin": {
-        "brocconi": "dist/brocconi"
+        "brocconi": "dist/index.js"
     },
     "scripts": {
         "start": "bun run src/index.ts",

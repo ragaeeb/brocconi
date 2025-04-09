@@ -1,8 +1,9 @@
-import type { OCRResult, PageImageFile } from '@/types.js';
-
-import { getOCRSpaceKey } from '@/utils/config.js';
-import logger from '@/utils/logger.js';
 import { ocrSpace } from 'ocr-space-api-wrapper';
+
+import type { OCRResult, PageImageFile } from '../types.js';
+
+import { getOCRSpaceKey } from '../utils/config.js';
+import logger from '../utils/logger.js';
 
 export const performOCRSpaceFallback = async (data: OCRResult, files: PageImageFile[], part: number) => {
     const emptyPages: PageImageFile[] = [];

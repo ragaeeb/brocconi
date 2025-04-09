@@ -1,10 +1,11 @@
-import type { OCROptions, OCRResult, PageImageFile } from '@/types.js';
-import type { GeminiAPI } from '@/utils/api.js';
-
-import { getRandomGeminiApiKey } from '@/utils/config.js';
-import logger from '@/utils/logger.js';
 import { file } from 'bun';
 import { setTimeout } from 'node:timers/promises';
+
+import type { OCROptions, OCRResult, PageImageFile } from '../types.js';
+import type { GeminiAPI } from '../utils/api.js';
+
+import { getRandomGeminiApiKey } from '../utils/config.js';
+import logger from '../utils/logger.js';
 
 const FOOTNOTES_MARKER = '<FOOTNOTES>';
 
