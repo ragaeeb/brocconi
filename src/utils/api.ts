@@ -1,8 +1,9 @@
 import { createPartFromUri, createUserContent, type File, GoogleGenAI } from '@google/genai';
+import logSymbols from 'log-symbols';
 import { blueBright, italic, magenta, magentaBright } from 'picocolors';
 
 import logger from './logger.js';
-import { samplePageWithFootnotes } from './training.js';
+import { maskText } from './textUtils.js';
 
 enum GeminiModel {
     FlashLiteV2 = 'gemini-2.0-flash-lite',
@@ -18,14 +19,31 @@ export const COLORED_MODELS = [
     { color: magenta, model: GeminiModel.FlashLiteV2 },
 ];
 
+export enum GeminiErrorMessage {
+    Overloaded = 'model is overloaded',
+    RateLimit = 'Too Many Requests',
+}
+
 export class GeminiAPI {
+    private readonly assets: string[];
     private client?: GoogleGenAI;
     private readonly ocrPrompt?: string;
+    private trainingFiles: File[];
 
-    private trainingImageFile?: File;
-
-    constructor({ ocrPrompt }: { ocrPrompt: string }) {
+    constructor({ assets, ocrPrompt }: { assets: string[]; ocrPrompt: string }) {
         this.ocrPrompt = ocrPrompt;
+        this.assets = assets;
+        this.trainingFiles = [];
+    }
+
+    static mapErrorToMessage(err: any) {
+        if (err.message?.includes('model is overloaded')) {
+            return GeminiErrorMessage.Overloaded;
+        }
+
+        if (err.message?.includes('Too Many Requests')) {
+            return GeminiErrorMessage.RateLimit;
+        }
     }
 
     async deleteAllFiles() {
@@ -38,77 +56,91 @@ export class GeminiAPI {
             try {
                 await this.client?.files.delete({ name: file.name! });
             } catch (err) {
-                logger.error(err, `Could not delete ${file.uri}`);
+                logger.error(err, `${logSymbols.error} Could not delete ${file.uri}`);
             }
         }
     }
 
     async destroy() {
-        try {
-            if (this.trainingImageFile?.name) {
-                logger.info(`🗑️ Deleting previous training image.`);
-                await this.client?.files.delete({ name: this.trainingImageFile.name });
+        for (const trainingFile of this.trainingFiles) {
+            try {
+                logger.info(`${logSymbols.info} deleting previous training file ${trainingFile.name}.`);
+                await this.client?.files.delete({ name: trainingFile.name! });
+            } catch (err) {
+                logger.error(err, `Error deleting training file`);
             }
-        } catch (err) {
-            logger.error(err, `Error deleting training image`);
         }
 
-        this.trainingImageFile = undefined;
+        this.trainingFiles = [];
     }
 
     async init(apiKey: string) {
         await this.destroy();
 
-        logger.info(
-            `Initializing with ${italic(magentaBright(apiKey.slice(0, 3) + '*****' + apiKey[Math.floor(apiKey.length / 2)] + '*****' + apiKey.slice(-3)))}...`,
-        );
+        logger.info(`${logSymbols.info} Initializing with ${italic(magentaBright(maskText(apiKey)))}...`);
         this.client = new GoogleGenAI({ apiKey });
+
+        logger.info(`ℹ${logSymbols.info} Uploading training assets: ${this.assets.toString()}`);
+
+        this.trainingFiles = await Promise.all(
+            this.assets.map(
+                async (asset) =>
+                    await this.client!.files.upload({
+                        file: asset,
+                    }),
+            ),
+        );
+
+        logger.info(`${logSymbols.success} Training uris: ${this.trainingFiles.map((f) => f.uri).join(', ')}`);
     }
 
     async ocrImage(file: string) {
-        if (!this.trainingImageFile) {
-            logger.info(`ℹ️ Uploading training image: ${samplePageWithFootnotes}`);
-
-            this.trainingImageFile = await this.client!.files.upload({
-                file: samplePageWithFootnotes,
-            });
-
-            logger.info(`🥊 Training uri: ${this.trainingImageFile.uri}`);
-        }
-
-        logger.info(`📤 Uploading ${file}`);
+        logger.info(`${logSymbols.info} Uploading ${file}`);
 
         const imageFile = await this.client!.files.upload({
             file,
         });
 
+        const contents = createUserContent([
+            ...this.trainingFiles.map((t) => createPartFromUri(t.uri!, t.mimeType!)),
+            createPartFromUri(imageFile.uri!, imageFile.mimeType!),
+            this.ocrPrompt!,
+        ]);
+
         let result;
 
         try {
             for (const { color, model } of COLORED_MODELS) {
-                logger.info(`⏳ Issuing OCR request for ${imageFile.uri} with ${color(model)}`);
+                logger.info(`Issuing OCR request for ${imageFile.name} with ${color(model)}`);
 
-                result = await this.client!.models.generateContent({
-                    contents: createUserContent([
-                        createPartFromUri(this.trainingImageFile!.uri!, this.trainingImageFile!.mimeType!),
-                        createPartFromUri(imageFile.uri!, imageFile.mimeType!),
-                        this.ocrPrompt!,
-                    ]),
-                    model,
-                });
+                try {
+                    result = await this.client!.models.generateContent({
+                        contents,
+                        model,
+                    });
 
-                if (result.text) {
-                    break;
-                } else {
-                    logger.warn('♻️ Empty response received, trying next model');
+                    if (result.text) {
+                        break;
+                    } else {
+                        logger.warn(`${logSymbols.warning} Empty response received, trying next model`);
+                    }
+                } catch (err: any) {
+                    const message = GeminiAPI.mapErrorToMessage(err);
+
+                    if (message === GeminiErrorMessage.Overloaded) {
+                        logger.warn(`${logSymbols.warning} Model overloaded, trying next model`);
+                    } else {
+                        Object.assign(err, { cause: message });
+                        throw err;
+                    }
                 }
             }
         } finally {
             try {
-                logger.debug(`🗑️ Deleting ${imageFile.name}`);
+                logger.debug(`${logSymbols.info} Deleting ${imageFile.name}`);
                 await this.client?.files.delete({ name: imageFile.name! });
             } catch (err) {
-                logger.warn(err, 'Could not delete uploaded image');
+                logger.warn(err, `${logSymbols.warning} Could not delete uploaded image`);
             }
         }
 

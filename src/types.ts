@@ -1,25 +1,22 @@
 export type OCROptions = {
-    isolateFooters?: boolean;
-    part: number;
+    apiKey?: string;
+    assets: string[];
+    clearBeforeStart?: boolean;
     prompt: string;
-    resetBeforeStart?: boolean;
 };
 
 export type OCRResult = {
-    aiModelId?: string;
+    createdAt?: Date;
     pages: Page[];
     prompt?: string;
-    startTimestamp?: Date;
-    timestamp: Date;
+    updatedAt: Date;
 };
 
 export type Page = {
-    accessed: Date;
-    aiModelId?: string;
     body: string;
-    footnotes?: string;
+    createdAt: Date;
+    modelId?: string;
     page: number;
-    part: number;
 };
 
 export type PageImageFile = { file: string; page: number };

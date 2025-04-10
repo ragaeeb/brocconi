@@ -1,8 +1,6 @@
 import { $, spawn } from 'bun';
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { setTimeout } from 'node:timers/promises';
 import pMap from 'p-map';
 import sharp from 'sharp';
 
@@ -10,7 +8,7 @@ import type { PageImageFile } from '../types.js';
 
 import logger from './logger.js';
 
-export const exportPdfToImages = async (pdf: string) => {
+export const exportPdfToImages = async (pdf: string, outputDirectory: string) => {
     try {
         await $`which pdftoppm`.quiet();
     } catch (error) {
@@ -18,17 +16,16 @@ export const exportPdfToImages = async (pdf: string) => {
         throw new Error('pdftoppm is not installed. Please install poppler-utils package.');
     }
 
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'brocconi'));
-    const command = ['pdftoppm', '-cropbox', '-jpeg', '-q', '-r', '300', pdf, `${tempDir}/`];
+    const command = ['pdftoppm', '-cropbox', '-jpeg', '-q', '-r', '300', pdf, `${outputDirectory}/`];
 
     logger.info(`Exporting pdf ${pdf} with ${command.toString()}`);
     const exitCode = await spawn(command).exited;
 
     if (exitCode === 0) {
-        return tempDir;
+        return outputDirectory;
     }
 
-    await fs.rm(tempDir, { recursive: true });
+    await fs.rm(outputDirectory, { recursive: true });
     throw new Error(`pdftoppm exited with code ${exitCode}`);
 };
 
@@ -89,30 +86,6 @@ export const getImagesToOCR = async (imagesDirectory: string): Promise<PageImage
     logger.info(`${validImages.length} valid images found`);
 
     return validImages;
-};
-
-export const waitForUserInterruption = async (timeoutMs = 3000): Promise<boolean> => {
-    while (process.stdin.read()) {
-        // Flush any existing stdin input by reading non-blocking
-    }
-
-    const timeout = setTimeout(timeoutMs).then(() => 'timeout');
-
-    const input = (async () => {
-        for await (const line of console) {
-            return line;
-        }
-    })();
-
-    let result;
-
-    try {
-        result = await Promise.race([timeout, input]);
-    } finally {
-        process.stdin.pause();
-    }
-
-    return result !== 'timeout';
 };
 
 export const openFolder = async (path: string) => {

@@ -1,11 +1,15 @@
 import Conf from 'conf';
 
 import packageJson from '../../package.json' assert { type: 'json' };
-import logger from './logger.js';
+
+export type Prompt = {
+    assets: string[];
+    promptFile: string;
+};
 
 type ConfigSchema = {
     geminiApiKeys: string[];
-    ocrSpaceApiKey?: string;
+    prompts: Prompt[];
 };
 
 const config = new Conf<ConfigSchema>({
@@ -18,35 +22,27 @@ const config = new Conf<ConfigSchema>({
             },
             type: 'array',
         },
-        ocrSpaceApiKey: {
-            type: 'string',
+        prompts: {
+            default: [],
+            items: {
+                properties: {
+                    assets: {
+                        items: { type: 'string' },
+                        type: 'array',
+                    },
+                    promptFile: { type: 'string' },
+                },
+                required: ['assets', 'promptFile'],
+                type: 'object',
+            },
+            type: 'array',
         },
     },
 });
 
-logger.info(`Config loaded from ${config.path}`);
-
-/**
- * Returns a random API key from the configured list.
- * @returns {string} The next API key to use
- */
 export const getRandomGeminiApiKey = (): string => {
     const keys = config.get('geminiApiKeys');
     return keys[Math.floor(Math.random() * keys.length)];
 };
 
-export const hasGeminiApiKeys = () => {
-    return config.get('geminiApiKeys').length > 0;
-};
-
-export const setGeminiApiKeys = (keys: string[]) => {
-    config.set('geminiApiKeys', keys);
-};
-
-export const setOCRSpaceKey = (key: string) => {
-    config.set('ocrSpaceApiKey', key);
-};
-
-export const getOCRSpaceKey = () => {
-    return config.get('ocrSpaceApiKey');
-};
+export default config;
