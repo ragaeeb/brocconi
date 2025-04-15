@@ -54,7 +54,7 @@ const performOCROnPages = async (gemini: GeminiAPI, data: OCRResult, files: Page
 };
 
 export const ocrImages = async (imagesDirectory: string, outputFile: string, options: OCROptions) => {
-    const gemini = new GeminiAPI({ assets: options.assets, ocrPrompt: options.prompt });
+    const gemini = new GeminiAPI({ assets: options.assets, prompt: options.prompt });
     const data: OCRResult = {
         createdAt: new Date(),
         pages: [],

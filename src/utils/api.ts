@@ -1,7 +1,8 @@
-import { createPartFromUri, createUserContent, type File, GoogleGenAI } from '@google/genai';
+import { createPartFromBase64, createPartFromUri, createUserContent, type File, GoogleGenAI } from '@google/genai';
 import logSymbols from 'log-symbols';
 import { blueBright, italic, magenta, magentaBright } from 'picocolors';
 
+import { base64Encode } from './io.js';
 import logger from './logger.js';
 import { maskText } from './textUtils.js';
 
@@ -14,8 +15,8 @@ enum GeminiModel {
 
 export const COLORED_MODELS = [
     { color: blueBright, model: GeminiModel.FlashV2 },
-    { color: magenta, model: GeminiModel.FlashThinkingV2 },
     { color: magenta, model: GeminiModel.ProV2_5 },
+    { color: magenta, model: GeminiModel.FlashThinkingV2 },
     { color: magenta, model: GeminiModel.FlashLiteV2 },
 ];
 
@@ -24,16 +25,24 @@ export enum GeminiErrorMessage {
     RateLimit = 'Too Many Requests',
 }
 
+type GeminiAPIProps = {
+    assets: string[];
+    prompt: string;
+    verify?: (text: string) => Promise<boolean>;
+};
+
 export class GeminiAPI {
+    private assetFiles: File[];
     private readonly assets: string[];
     private client?: GoogleGenAI;
-    private readonly ocrPrompt?: string;
-    private trainingFiles: File[];
+    private readonly prompt: string;
+    private readonly verify?: (text: string) => Promise<boolean>;
 
-    constructor({ assets, ocrPrompt }: { assets: string[]; ocrPrompt: string }) {
-        this.ocrPrompt = ocrPrompt;
+    constructor({ assets, prompt, verify }: GeminiAPIProps) {
+        this.prompt = prompt;
         this.assets = assets;
-        this.trainingFiles = [];
+        this.verify = verify;
+        this.assetFiles = [];
     }
 
     static mapErrorToMessage(err: any) {
@@ -62,7 +71,7 @@ export class GeminiAPI {
     }
 
     async destroy() {
-        for (const trainingFile of this.trainingFiles) {
+        for (const trainingFile of this.assetFiles) {
             try {
                 logger.info(`${logSymbols.info} deleting previous training file ${trainingFile.name}.`);
                 await this.client?.files.delete({ name: trainingFile.name! });
@@ -71,7 +80,7 @@ export class GeminiAPI {
             }
         }
 
-        this.trainingFiles = [];
+        this.assetFiles = [];
     }
 
     async init(apiKey: string) {
@@ -82,36 +91,36 @@ export class GeminiAPI {
 
         logger.info(`ℹ${logSymbols.info} Uploading training assets: ${this.assets.toString()}`);
 
-        this.trainingFiles = await Promise.all(
-            this.assets.map(
-                async (asset) =>
-                    await this.client!.files.upload({
-                        file: asset,
-                    }),
-            ),
-        );
+        this.assetFiles = await this.uploadFiles(this.assets);
 
-        logger.info(`${logSymbols.success} Training uris: ${this.trainingFiles.map((f) => f.uri).join(', ')}`);
+        logger.info(`${logSymbols.success} Training uris: ${this.assetFiles.map((f) => f.uri).join(', ')}`);
     }
 
-    async ocrImage(file: string) {
-        logger.info(`${logSymbols.info} Uploading ${file}`);
+    async ocrImage(files: string[], { useBase64Encoding = true } = {}) {
+        logger.info(`${logSymbols.info} Uploading ${files}, useBase64Encoding=${useBase64Encoding}`);
 
-        const imageFile = await this.client!.files.upload({
-            file,
-        });
+        const parts = [];
+        let filesToCleanUp: File[] = [];
+
+        if (useBase64Encoding) {
+            const taskFiles = await Promise.all(files.map(base64Encode));
+            parts.push(...taskFiles.map((t) => createPartFromBase64(t.data, t.mimeType)));
+        } else {
+            filesToCleanUp = await this.uploadFiles(files);
+            parts.push(...filesToCleanUp.map((t) => createPartFromUri(t.uri!, t.mimeType!)));
+        }
 
         const contents = createUserContent([
-            ...this.trainingFiles.map((t) => createPartFromUri(t.uri!, t.mimeType!)),
-            createPartFromUri(imageFile.uri!, imageFile.mimeType!),
-            this.ocrPrompt!,
+            ...this.assetFiles.map((t) => createPartFromUri(t.uri!, t.mimeType!)),
+            ...parts,
+            this.prompt!,
         ]);
 
         let result;
 
         try {
             for (const { color, model } of COLORED_MODELS) {
-                logger.info(`Issuing OCR request for ${imageFile.name} with ${color(model)}`);
+                logger.info(`Issuing OCR request with ${color(model)}`);
 
                 try {
                     result = await this.client!.models.generateContent({
@@ -120,7 +129,17 @@ export class GeminiAPI {
                     });
 
                     if (result.text) {
-                        break;
+                        if (this.verify) {
+                            const isValid = await this.verify(result.text);
+
+                            if (isValid) {
+                                break;
+                            } else {
+                                logger.warn(`${logSymbols.warning} Invalid response, trying next model`);
+                            }
+                        } else {
+                            break;
+                        }
                     } else {
                         logger.warn(`${logSymbols.warning} Empty response received, trying next model`);
                     }
@@ -136,14 +155,27 @@ export class GeminiAPI {
                 }
             }
         } finally {
-            try {
-                logger.debug(`${logSymbols.info} Deleting ${imageFile.name}`);
-                await this.client?.files.delete({ name: imageFile.name! });
-            } catch (err) {
-                logger.warn(err, `${logSymbols.warning} Could not delete uploaded image`);
+            for (const taskFile of filesToCleanUp) {
+                try {
+                    logger.debug(`${logSymbols.info} Deleting ${taskFile.name}`);
+                    await this.client?.files.delete({ name: taskFile.name! });
+                } catch (err) {
+                    logger.warn(err, `${logSymbols.warning} Could not delete uploaded task file`);
+                }
             }
         }
 
         return result!;
+    }
+
+    async uploadFiles(files: string[]) {
+        const promises = files.map(
+            async (asset) =>
+                await this.client!.files.upload({
+                    file: asset,
+                }),
+        );
+
+        return Promise.all(promises);
     }
 }

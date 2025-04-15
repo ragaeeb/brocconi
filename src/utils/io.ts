@@ -1,4 +1,4 @@
-import { $, spawn } from 'bun';
+import { $, file, spawn } from 'bun';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import pMap from 'p-map';
@@ -104,4 +104,12 @@ export const openFolder = async (path: string) => {
         logger.error(`Failed to open folder: ${error}`);
         return false;
     }
+};
+
+export const base64Encode = async (filePath: string) => {
+    const f = file(filePath);
+    const buffer = await f.arrayBuffer();
+    const binary = String.fromCharCode(...new Uint8Array(buffer));
+    const base64 = btoa(binary);
+    return { data: base64, mimeType: f.type };
 };
