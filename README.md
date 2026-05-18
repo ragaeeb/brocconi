@@ -2,13 +2,6 @@
 
 `brocconi` is a small Bun-first library for deterministic browser harnessing: a preboot script generator, a CDP sidecar for non-DOM signals, stable Chrome launch flags, and Chrome executable resolution.
 
-## Status
-
-This package was extracted from `ushman` as a local sibling repo and is currently consumed via `file:../brocconi`.
-It is **not** a published npm release yet.
-
-Originated from ushman; ushman's source of truth for the deterministic harness still lives in the ushman family and flows into this package.
-
 ## Who This Is For
 
 - Puppeteer users who need deterministic captures or reproducible screenshots.
