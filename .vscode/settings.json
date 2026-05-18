@@ -1,0 +1,12 @@
+{
+    "editor.codeActionsOnSave": {
+        "source.fixAll.biome": "explicit",
+        "source.organizeImports.biome": "explicit"
+    },
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.formatOnSave": true,
+    "npm.packageManager": "bun",
+    "[html]": {
+        "editor.defaultFormatter": "vscode.html-language-features"
+    }
+}

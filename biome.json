@@ -1,0 +1,101 @@
+{
+    "$schema": "https://biomejs.dev/schemas/latest/schema.json",
+    "assist": {
+        "actions": {
+            "source": {
+                "organizeImports": "on",
+                "useSortedKeys": {
+                    "level": "on",
+                    "options": {
+                        "sortOrder": "natural"
+                    }
+                }
+            }
+        }
+    },
+    "files": {
+        "ignoreUnknown": true,
+        "includes": [
+            "src/**",
+            "*.json",
+            "*.md",
+            "!!**/node_modules",
+            "!!**/dist"
+        ]
+    },
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 120
+    },
+    "javascript": {
+        "formatter": {
+            "arrowParentheses": "always",
+            "bracketSameLine": false,
+            "bracketSpacing": true,
+            "quoteStyle": "single",
+            "semicolons": "always",
+            "trailingCommas": "all"
+        }
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "complexity": {
+                "noExcessiveCognitiveComplexity": "warn",
+                "useArrowFunction": "warn"
+            },
+            "correctness": {
+                "noUnusedImports": {
+                    "fix": "safe",
+                    "level": "warn",
+                    "options": {}
+                }
+            },
+            "recommended": true,
+            "style": {
+                "noInferrableTypes": "warn",
+                "noNonNullAssertion": "off",
+                "noRestrictedImports": {
+                    "level": "error",
+                    "options": {
+                        "paths": {
+                            "bun:test": {
+                                "importNames": ["test"],
+                                "message": "Use it from bun:test instead of test."
+                            }
+                        }
+                    }
+                },
+                "useBlockStatements": {
+                    "fix": "safe",
+                    "level": "warn",
+                    "options": {}
+                },
+                "useConsistentTypeDefinitions": {
+                    "fix": "safe",
+                    "level": "warn",
+                    "options": {
+                        "style": "type"
+                    }
+                },
+                "useImportType": {
+                    "fix": "safe",
+                    "level": "error",
+                    "options": {}
+                }
+            },
+            "suspicious": {
+                "noConsole": "off",
+                "noExplicitAny": "off",
+                "noTemplateCurlyInString": "off"
+            }
+        }
+    },
+    "vcs": {
+        "clientKind": "git",
+        "enabled": true,
+        "useIgnoreFile": true
+    }
+}

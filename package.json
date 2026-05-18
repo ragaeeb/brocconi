@@ -1,0 +1,53 @@
+{
+    "author": {
+        "name": "Ragaeeb Haq",
+        "url": "https://github.com/ragaeeb"
+    },
+    "dependencies": {
+        "@puppeteer/browsers": "3.0.2"
+    },
+    "description": "Deterministic browser harness primitives.",
+    "devDependencies": {
+        "@biomejs/biome": "2.4.15",
+        "@types/bun": "1.3.14",
+        "@types/node": "25.8.0",
+        "typescript": "6.0.3"
+    },
+    "engines": {
+        "bun": ">=1.3.13",
+        "node": ">=24"
+    },
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "AGENTS.md",
+        "LICENSE.md"
+    ],
+    "keywords": [
+        "browser",
+        "deterministic",
+        "puppeteer",
+        "playwright",
+        "cdp"
+    ],
+    "license": "MIT",
+    "main": "dist/index.js",
+    "name": "brocconi",
+    "packageManager": "bun@1.3.14",
+    "private": false,
+    "scripts": {
+        "build": "rm -rf dist && tsc -p tsconfig.build.json",
+        "format": "biome check . --write && biome lint . --write",
+        "lint": "biome lint .",
+        "typecheck": "tsc --noEmit -p tsconfig.json"
+    },
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "version": "0.1.0"
+}
